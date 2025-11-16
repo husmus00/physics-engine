@@ -30,8 +30,7 @@ The Pico firmware reads accelerometer data via I2C and transmits it over USB ser
 - Gravity simulation with configurable strength
 - Physics sub-stepping to prevent tunneling
 - Dynamic, kinematic, and static rigid body support
-- Circle-circle collision detection
-- Circle-rectangle collision with arbitrary rotation
+- Collision detection for circles and rectangles with arbitrary rotation
 - Positional correction for overlapping objects
 - Impulse-based velocity resolution with configurable restitution
 - Non-blocking Real-time serial communication with hardware accelerometer
