@@ -1,5 +1,9 @@
 # 2D Physics Engine with Accelerometer Control
 
+
+https://github.com/user-attachments/assets/e7717ed8-85cd-471e-8d70-47ba47060c9d
+
+
 A modular 2D rigid body physics engine written in Rust, featuring real-time hardware control via a Raspberry Pi Pico 2W accelerometer. The engine simulates gravity, collisions, and bouncing dynamics for circles and rectangles.
 
 ## Architecture
@@ -26,8 +30,7 @@ The Pico firmware reads accelerometer data via I2C and transmits it over USB ser
 - Gravity simulation with configurable strength
 - Physics sub-stepping to prevent tunneling
 - Dynamic, kinematic, and static rigid body support
-- Circle-circle collision detection
-- Circle-rectangle collision with arbitrary rotation
+- Collision detection for circles and rectangles with arbitrary rotation
 - Positional correction for overlapping objects
 - Impulse-based velocity resolution with configurable restitution
 - Non-blocking Real-time serial communication with hardware accelerometer
