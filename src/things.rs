@@ -1,11 +1,11 @@
 use crate::Id;
 
 pub struct Transform {
-    x_pos: i32,
-    y_pos: i32,
-    width: i32,
-    height: i32,
-    rotation: i32,
+    pub x_pos: i32,
+    pub y_pos: i32,
+    pub width: i32,
+    pub height: i32,
+    pub rotation: i32,
 }
 
 pub enum CollisionType {
@@ -27,6 +27,7 @@ pub struct Shape {
     pub collision_type: CollisionType,
 }
 
+#[derive(Debug)]
 pub enum Sprite {
     Circle,
     Rectangle,

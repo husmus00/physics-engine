@@ -25,24 +25,14 @@ struct ThingData {
     b: u8,
 }
 
-fn load_things_from_file(path: &str) -> Result<Vec<Thing>, Box<dyn Error>> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let thing_data: Vec<ThingData> = serde_json::from_reader(reader)?;
-
-    for data in thing_data {
-
-    }
-
-    Ok(sprites)
-}
-
-fn main() -> Result<(), Box<dyn Error>> {
-    let sprites = load_things_from_file("sprites.json")?;
-
-    for sprite in sprites {
-        println!("{:?}", sprite);
-    }
-
-    Ok(())
-}
+// fn load_things_from_file(path: &str) -> Result<Vec<Thing>, Box<dyn Error>> {
+//     let file = File::open(path)?;
+//     let reader = BufReader::new(file);
+//     let thing_data: Vec<ThingData> = serde_json::from_reader(reader)?;
+//
+//     for data in thing_data {
+//
+//     }
+//
+//     Ok(sprites)
+// }

@@ -1,13 +1,14 @@
 mod collision;
 mod loader;
 mod things;
+mod controller;
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU16,Ordering};
 use raylib::ffi::KeyboardKey::{KEY_LEFT, KEY_RIGHT};
 use raylib::prelude::*;
-
 use things::*;
+use crate::controller::{find_pico_port, AccelerometerReader, Input};
 
 type Id = u16;
 
@@ -16,6 +17,9 @@ type Id = u16;
 struct CollisionSpace {
     shapes: HashMap<Id, Shape>,
 }
+
+const SCREEN_WIDTH: i32 = 640;
+const SCREEN_HEIGHT: i32 = 480;
 
 impl CollisionSpace {
 
@@ -76,8 +80,8 @@ fn main() {
 
     // Load objects from e.g., json file
     // Each object registers itself with the space (and potentially collision space)
-    let transform_1 = Transform { x_pos: 160, y_pos: 30, width: 20, height: 20, rotation: 0 };
-    let transform_2 = Transform { x_pos: 480, y_pos: 30, width: 20, height: 20, rotation: 0 };
+    let transform_1 = things::Transform { x_pos: 160, y_pos: 30, width: 20, height: 20, rotation: 0 };
+    let transform_2 = things::Transform { x_pos: 480, y_pos: 30, width: 20, height: 20, rotation: 0 };
 
     space.register(transform_1, Sprite::Circle, true, &mut collision_space);
     space.register(transform_2, Sprite::Circle, true, &mut collision_space);
@@ -87,9 +91,31 @@ fn main() {
     let mut pos_x = 320;
     let mut pos_y = 0;
 
+    let port_name = find_pico_port()
+        .ok_or("Could not find Pico").unwrap();
+
+    println!("Connecting to {}...", port_name);
+
+    // Use 0.8 as smoothing factor
+    let mut accel = AccelerometerReader::new(&port_name, 115200, 0.6).unwrap();
+
+
     while !rl.window_should_close() {
 
         // Handle player input
+
+        let input = accel.read();
+        let platform_axes: Input;
+        match input {
+            Ok(input) => {
+                println!("Acceleration: X={:.2}g Y={:.2}g Z={:.2}g", input.x, input.y, input.z);
+                platform_axes = Input{ x: input.x, y: input.y, z: input.z};
+            },
+            Err(e) => {
+                println!("Error reading accel: {:?}", e);
+                platform_axes = Input { x: 0.0, y: 0.0, z: 0.0 };
+            }
+        }
 
         // Handle collision detection
 
@@ -100,7 +126,7 @@ fn main() {
         d.clear_background(Color::WHITE);
 
         for (id, t) in &space.things {
-            println!("Drawing thing {}", id);
+            // println!("Drawing thing {}", id);
             let transform = &collision_space.shapes.get(&id).unwrap().transform;
             let (r, g, b) = t.color;
 
@@ -114,6 +140,14 @@ fn main() {
             }
         }
 
+        // Print platform
+
+        let p_width = 300.0;
+        let p_height = 35.0;
+        let p_rotation = ((platform_axes.x * 100.0).round() / 100.0) * 65.0;
+        d.draw_rectangle_pro(Rectangle::new((SCREEN_WIDTH / 2) as f32, (SCREEN_HEIGHT / 2) as f32, p_width, p_height), Vector2::new(p_width / 2.0, p_height / 2.0), p_rotation, Color::RED);
+
+
         // ----
 
 
@@ -123,7 +157,7 @@ fn main() {
         d.draw_circle(pos_x, pos_y, 20., Color::BLACK);
 
         if frame % 2 == 0 {
-            pos_y += 1;
+            pos_y += 5;
         }
 
         if d.is_mouse_button_down(MouseButton::MOUSE_BUTTON_RIGHT) {
@@ -139,13 +173,12 @@ fn main() {
         if d.is_key_down(KEY_LEFT) {
             pos_x -= 1;
         }
-
     }
 }
 
 fn init_visualiser() -> (RaylibHandle, RaylibThread) {
     let (mut rl, thread) = raylib::init()
-        .size(640, 480)
+        .size(SCREEN_WIDTH, SCREEN_HEIGHT)
         .title("Hello, World")
         .build();
 
