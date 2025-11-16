@@ -99,14 +99,17 @@ fn main() {
         // Handle collision / transform updates
         collision_space.update();
 
+
         // Handle visualisation
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(Color::WHITE);
 
+
+        // For each object, draw and handle off-screen behaviour
         for (id, t) in &space.things {
             // println!("Drawing thing {}", id);
-            let shape = &collision_space.shapes.get(&id).unwrap();
-            let transform = &shape.transform;
+            let shape = collision_space.shapes.get_mut(&id).unwrap();
+            let transform: &mut things::Transform = &mut shape.transform;
             let (r, g, b) = t.color;
 
             let mut color = Color::new(r, g, b, 255);
@@ -141,7 +144,26 @@ fn main() {
                     );
                 }
             }
+
+            // Handle off-screen
+            if transform.x_pos > (SCREEN_WIDTH + transform.width) as f32 {
+                transform.x_pos =  0.0 - transform.width as f32
+            }
+
+            if transform.x_pos < (0 - transform.width) as f32 {
+                transform.x_pos =  (SCREEN_WIDTH + transform.width) as f32
+            }
+
+            if transform.y_pos > (SCREEN_HEIGHT + transform.height) as f32 {
+                transform.y_pos =  0.0 - transform.height as f32
+            }
+
+            if transform.y_pos < (0 - transform.height) as f32 {
+                transform.y_pos =  (SCREEN_HEIGHT + transform.height) as f32
+            }
         }
+
+        // Draw debug information
     }
 }
 

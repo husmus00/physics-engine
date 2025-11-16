@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use crate::{things, Id};
 use crate::things::{CollisionType, Dynamics, Shape, Sprite, Thing};
 
+const TERMINAL_VELOCITY: f32 = 30.0;
 
 #[derive(Default)]
 pub struct CollisionSpace {
@@ -70,8 +71,11 @@ impl CollisionSpace {
         for thing in self.shapes.values_mut()
             .filter(|shape| matches!(shape.dynamics, Dynamics::Dynamic))
         {
-            thing.transform.accel_y = 9.8 / 60.0 * 12.0; // Per frame, scaled by some factor to speed up
-            thing.transform.vel_y += thing.transform.accel_y
+
+            if thing.transform.vel_y < TERMINAL_VELOCITY {
+                thing.transform.accel_y = 9.8 / 60.0 * 12.0; // Per frame, scaled by some factor to speed up
+                thing.transform.vel_y += thing.transform.accel_y
+            }
         }
     }
 
