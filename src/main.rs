@@ -10,8 +10,8 @@ use crate::controller::{find_pico_port, AccelerometerReader, Input};
 
 type Id = u16;
 
-const SCREEN_WIDTH: i32 = 640;
-const SCREEN_HEIGHT: i32 = 480;
+const SCREEN_WIDTH: i32 = 920;
+const SCREEN_HEIGHT: i32 = 640;
 
 const DEBUG: bool = false;
 
@@ -28,21 +28,12 @@ fn main() {
     // each holding visual ref. + shape (collide ref. + transform) data)
     let mut space = Space::default();
 
-    // Load objects from e.g., json file
-    // Each object registers itself with the space (and potentially collision space)
-
-    let num_objects = 15;
-    for i in 0..num_objects {
-        let ball_transform = things::Transform::new((SCREEN_WIDTH / num_objects * i) as f32, 30.0, 30, 30, 0.0);
-        space.register(ball_transform, Sprite::Circle, None, Some(Dynamics::Dynamic), 0.6, &mut collision_space);
-    }
-
     // Register the platform
 
     let p_x_pos = (SCREEN_WIDTH / 2) as f32;
     let p_y_pos = (SCREEN_HEIGHT / 2) as f32;
-    let p_width = 450;
-    let p_height = 25;
+    let p_width = 600;
+    let p_height = 40;
     let p_rotation = 0.0; //
     let platform_transform = things::Transform::new(
         p_x_pos,
@@ -68,7 +59,25 @@ fn main() {
     let mut controller = AccelerometerReader::new(&port_name, 115200, 0.6).unwrap();
     let mut platform_axes= Input::default();
 
+    // Load objects from e.g., json file
+    // Each object registers itself with the space (and potentially collision space)
+
+    let num_objects: i32 = 100;
+    let num_to_add: i32 = 10;
+    let diameter = 20;
+
+    let mut frame_count = 0;
+
     while !rl.window_should_close() {
+
+        frame_count += 1;
+
+        if space.things.len() < num_objects as usize && frame_count % 20 == 0 {
+            for i in 0..num_to_add {
+                let ball_transform = things::Transform::new((SCREEN_WIDTH / num_to_add * i) as f32, 30.0, diameter, diameter, 0.0);
+                space.register(ball_transform, Sprite::Circle, None, Some(Dynamics::Dynamic), 0.6, &mut collision_space);
+            }
+        }
 
         // Handle player input
         if let Some(new_input) = controller.read_non_blocking() {

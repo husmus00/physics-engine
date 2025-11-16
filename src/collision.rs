@@ -37,7 +37,7 @@ impl CollisionSpace {
 
     pub(crate) fn update(&mut self) {
 
-        const PHYSICS_SUBSTEPS: u32 = 4;
+        const PHYSICS_SUBSTEPS: u32 = 2;
 
         // 1. Apply gravity (continuous force) to dynamic objects
         self.handle_gravity();
@@ -93,6 +93,17 @@ impl CollisionSpace {
                     || matches!(shape_b.dynamics, Dynamics::Dynamic);
 
                 if !needs_check {
+                    continue;
+                }
+
+                // Quick AABB check first
+                let margin = 20.0; // Add some margin for safety
+                if (shape_a.transform.x_pos - shape_b.transform.x_pos).abs() >
+                    (shape_a.transform.width as f32 + shape_b.transform.width as f32) / 2.0 + margin {
+                    continue;
+                }
+                if (shape_a.transform.y_pos - shape_b.transform.y_pos).abs() >
+                    (shape_a.transform.height as f32 + shape_b.transform.height as f32) / 2.0 + margin {
                     continue;
                 }
 
