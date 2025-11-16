@@ -73,7 +73,7 @@ impl CollisionSpace {
         {
 
             if thing.transform.vel_y < TERMINAL_VELOCITY {
-                thing.transform.accel_y = 9.8 / 60.0 * 12.0; // Per frame, scaled by some factor to speed up
+                thing.transform.accel_y = 9.8 / 60.0 * 6.0; // Per frame, scaled by some factor to speed up
                 thing.transform.vel_y += thing.transform.accel_y
             }
         }
@@ -416,5 +416,12 @@ impl Space {
         self.things.insert(new_thing.id, new_thing);
 
         new_id
+    }
+}
+
+const DEBUG: bool = false;
+fn print_debug(message: &str) {
+    if DEBUG {
+        println!("{}", message);
     }
 }

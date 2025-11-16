@@ -13,7 +13,7 @@ type Id = u16;
 const SCREEN_WIDTH: i32 = 640;
 const SCREEN_HEIGHT: i32 = 480;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 
 fn main() {
@@ -30,17 +30,18 @@ fn main() {
 
     // Load objects from e.g., json file
     // Each object registers itself with the space (and potentially collision space)
-    let ball_transform_1 = things::Transform::new(240.0, 30.0, 30, 30, 0.0);
-    let ball_transform_2 =  things::Transform::new(400.0, 30.0, 30, 30, 0.0);
 
-    space.register(ball_transform_1, Sprite::Circle, None, Some(Dynamics::Dynamic), 0.7, &mut collision_space);
-    space.register(ball_transform_2, Sprite::Circle, None, Some(Dynamics::Dynamic), 0.7, &mut collision_space);
+    let num_objects = 15;
+    for i in 0..num_objects {
+        let ball_transform = things::Transform::new((SCREEN_WIDTH / num_objects * i) as f32, 30.0, 30, 30, 0.0);
+        space.register(ball_transform, Sprite::Circle, None, Some(Dynamics::Dynamic), 0.6, &mut collision_space);
+    }
 
     // Register the platform
 
     let p_x_pos = (SCREEN_WIDTH / 2) as f32;
     let p_y_pos = (SCREEN_HEIGHT / 2) as f32;
-    let p_width = 300;
+    let p_width = 450;
     let p_height = 25;
     let p_rotation = 0.0; //
     let platform_transform = things::Transform::new(
@@ -59,42 +60,24 @@ fn main() {
         &mut collision_space
     );
 
-
-    // let mut frame = 0;
-    // let mut pos_x = 320;
-    // let mut pos_y = 0;
-
     let port_name = find_pico_port()
         .ok_or("Could not find Pico").unwrap();
 
     println!("Connecting to {}...", port_name);
 
-    // Use 0.8 as smoothing factor
     let mut controller = AccelerometerReader::new(&port_name, 115200, 0.6).unwrap();
-
+    let mut platform_axes= Input::default();
 
     while !rl.window_should_close() {
 
         // Handle player input
-
-        let input = controller.read();
-        let platform_axes: Input;
-        match input {
-            Ok(input) => {
-                // println!("Acceleration: X={:.2}g Y={:.2}g Z={:.2}g", input.x, input.y, input.z);
-                platform_axes = Input{ x: input.x, y: input.y, z: input.z};
-            },
-            Err(e) => {
-                println!("Error reading accel: {:?}", e);
-                platform_axes = Input { x: 0.0, y: 0.0, z: 0.0 };
-            }
+        if let Some(new_input) = controller.read_non_blocking() {
+            platform_axes = new_input;
         }
 
         // Handle platform (kinematic) updates
         let platform : &mut Shape = &mut collision_space.shapes.get_mut(&platform_id).unwrap();
         platform.set_rotation(((platform_axes.x * 100.0).round() / 100.0) * 65.0);
-        // println!("Platform registered at: ({}, {})", p_x_pos, p_y_pos);
-
 
         // Handle collision / transform updates
         collision_space.update();
@@ -164,6 +147,8 @@ fn main() {
         }
 
         // Draw debug information
+        let debug_text = format!("FPS: {}\nNumber of Objects: {}", d.get_fps(), space.things.len());
+        d.draw_text(&debug_text, 10, 10, 5, Color::BLACK);
     }
 }
 

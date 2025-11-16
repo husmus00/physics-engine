@@ -2,7 +2,7 @@ use serialport::{SerialPort, SerialPortType, DataBits, FlowControl, Parity, Stop
 use std::time::Duration;
 use std::thread;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Input {
     pub x: f32,
     pub y: f32,
@@ -15,6 +15,7 @@ pub struct AccelerometerReader {
     smoothed_y: f32,
     smoothed_z: f32,
     smoothing: f32,
+    line_buffer: String,
 }
 
 impl AccelerometerReader {
@@ -43,57 +44,57 @@ impl AccelerometerReader {
             smoothed_y: 0.0,
             smoothed_z: 0.0,
             smoothing,
+            line_buffer: String::new()
         })
     }
 
-    pub fn read(&mut self) -> Result<Input, Box<dyn std::error::Error>> {
-        let mut byte_buf = [0u8; 1];
-        let mut line = String::new();
-
+    pub fn read_non_blocking(&mut self) -> Option<Input> {
+        // Try to read for max 5ms
         let start = std::time::Instant::now();
-        while start.elapsed() < Duration::from_secs(3) {
+
+        while start.elapsed() < Duration::from_millis(5) {
+            let mut byte_buf = [0u8; 1];
             match self.port.read(&mut byte_buf) {
                 Ok(1) => {
-                    let ch = byte_buf[0];
+                    if byte_buf[0] == b'\n' && !self.line_buffer.is_empty() {
+                        let parts: Vec<&str> = self.line_buffer.trim().split(',').collect();
+                        if parts.len() == 3 {
+                            if let (Ok(x), Ok(y), Ok(z)) = (
+                                parts[0].parse::<i16>(),
+                                parts[1].parse::<i16>(),
+                                parts[2].parse::<i16>(),
+                            ) {
+                                let input = Input {
+                                    x: x as f32 / 256.0,
+                                    y: y as f32 / 256.0,
+                                    z: z as f32 / 256.0,
+                                };
 
-                    if ch == b'\n' {
-                        if !line.is_empty() {
-                            let parts: Vec<&str> = line.trim().split(',').collect();
-                            if parts.len() == 3 {
-                                if let (Ok(x), Ok(y), Ok(z)) = (
-                                    parts[0].parse::<i16>(),
-                                    parts[1].parse::<i16>(),
-                                    parts[2].parse::<i16>(),
-                                ) {
-                                    let raw_x = x as f32 / 256.0;
-                                    let raw_y = y as f32 / 256.0;
-                                    let raw_z = z as f32 / 256.0;
+                                // Update smoothed values
+                                self.smoothed_x = self.smoothed_x * self.smoothing + input.x * (1.0 - self.smoothing);
+                                self.smoothed_y = self.smoothed_y * self.smoothing + input.y * (1.0 - self.smoothing);
+                                self.smoothed_z = self.smoothed_z * self.smoothing + input.z * (1.0 - self.smoothing);
 
-                                    // Apply smoothing
-                                    self.smoothed_x = self.smoothed_x * self.smoothing + raw_x * (1.0 - self.smoothing);
-                                    self.smoothed_y = self.smoothed_y * self.smoothing + raw_y * (1.0 - self.smoothing);
-                                    self.smoothed_z = self.smoothed_z * self.smoothing + raw_z * (1.0 - self.smoothing);
+                                self.line_buffer.clear();
 
-                                    return Ok(Input {
-                                        x: self.smoothed_x,
-                                        y: self.smoothed_y,
-                                        z: self.smoothed_z,
-                                    });
-                                }
+                                return Some(Input {
+                                    x: self.smoothed_x,
+                                    y: self.smoothed_y,
+                                    z: self.smoothed_z,
+                                });
                             }
                         }
-                        line.clear();
-                    } else if ch != b'\r' && ch.is_ascii() {
-                        line.push(ch as char);
+                        self.line_buffer.clear();
+                    } else if byte_buf[0] != b'\r' && byte_buf[0].is_ascii() {
+                        self.line_buffer.push(byte_buf[0] as char);
                     }
                 }
-                Ok(_) => {}
-                Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
-                Err(e) => return Err(e.into()),
+                _ => {}
             }
         }
 
-        Err("Timeout reading from accelerometer".into())
+        // Return last known smoothed value
+        None
     }
 }
 
